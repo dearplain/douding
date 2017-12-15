@@ -12,9 +12,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"golang.org/x/text/encoding/simplifiedchinese"
-	"golang.org/x/text/transform"
 )
 
 type Jpgs struct {
@@ -41,7 +38,6 @@ func downWenkuPPT(url string) {
 	// png=230016-246170&jpg=1394303-1518342&aimh=135&aimw=180
 	// url := "https://wenku.baidu.com/view/bb52fecf561252d381eb6e65.html"
 	buf := downloadA(url)
-	buf, _ = GbkToUtf8(buf)
 
 	urlRe := regexp.MustCompile(`(?U)view/(.*).html`)
 	var ss []string
@@ -81,15 +77,6 @@ func downWenkuPPT(url string) {
 		}
 		time.Sleep(1 * time.Second)
 	}
-}
-
-func GbkToUtf8(s []byte) ([]byte, error) {
-	reader := transform.NewReader(bytes.NewReader(s), simplifiedchinese.GBK.NewDecoder())
-	d, e := ioutil.ReadAll(reader)
-	if e != nil {
-		return nil, e
-	}
-	return d, nil
 }
 
 func downDouding(url string) {
