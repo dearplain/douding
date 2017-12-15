@@ -9,4 +9,5 @@ go get github.com/dearplain/douding
 example
 ```
 douding http://www.docin.com/p-931453357.html
+douding https://wenku.baidu.com/view/bb52fecf561252d381eb6e65.html
 ```
