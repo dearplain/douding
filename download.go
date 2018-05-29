@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -11,7 +10,6 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 )
 
 type Jpgs struct {
@@ -33,50 +31,25 @@ func main() {
 
 func downWenkuPPT(url string) {
 
-	// https://wkretype.bdimg.com/retype/zoom/7ff454ec0975f46527d3e167?pn=14&raww=1080
-	// &rawh=810&o=jpg_6&md5sum=2854096ac319841e6a86ef6d8e931e7c&sign=2dccc30c24&
-	// png=230016-246170&jpg=1394303-1518342&aimh=135&aimw=180
-	// url := "https://wenku.baidu.com/view/bb52fecf561252d381eb6e65.html"
-	buf := downloadA(url)
+	regID := regexp.MustCompile("view/(.*).html")
+	urls := regID.FindAllStringSubmatch(url, -1)
 
-	urlRe := regexp.MustCompile(`(?U)view/(.*).html`)
-	var ss []string
-	ss = urlRe.FindStringSubmatch(url)
-	urlID := ss[1]
+	docID := urls[0][1]
+	getUrl := "https://wenku.baidu.com/browse/getbcsurl?doc_id=" + docID + "&pn=1&rn=99999&type=ppt"
 
-	signRe := regexp.MustCompile(`(?U)(&md5sum=.*)"`)
-	ss = signRe.FindStringSubmatch(string(buf))
-	signStr := ss[1]
+	body, _ := downloadBuf(getUrl)
 
-	bcsParam := regexp.MustCompile(`(?U)bcsParam', "([\s\S]*)"`)
-	ss = bcsParam.FindStringSubmatch(string(buf))
-	var err error
-	ss[1] = strings.Replace(ss[1], "\\x22", "\x22", -1)
-	var jpgs []Jpgs
-	err = json.Unmarshal([]byte(ss[1]), &jpgs)
-	fmt.Println(jpgs)
+	regPages := regexp.MustCompile(`{"zoom":"(.*?)","page"`)
+	pages := regPages.FindAllStringSubmatch(string(body), -1)
 
-	os.MkdirAll(urlID, 0700)
-	for i := range jpgs {
-		imgURL := "https://wkretype.bdimg.com/retype/zoom/" + urlID + "?" + "pn=" +
-			fmt.Sprintf("%d", jpgs[i].Page) + "&raww=1080&rawh=810&o=jpg_6" + signStr + jpgs[i].Zoom
-		fmt.Println(imgURL)
-		buf := downloadA(imgURL)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		if len(buf) < 1024 {
-			fmt.Println("download complete!")
-			break
-		}
-		err = ioutil.WriteFile(urlID+"/"+fmt.Sprintf("%04d.jpg", jpgs[i].Page), buf, 0644)
-		if err != nil {
-			fmt.Println(err)
-			break
-		}
-		time.Sleep(1 * time.Second)
+	os.Mkdir(docID, 0700)
+	for i, p := range pages {
+		p[1] = strings.Replace(p[1], "\\", "", -1)
+		fmt.Println("downloading:", p[1])
+		body, _ := downloadBuf(p[1])
+		ioutil.WriteFile(docID+"/img"+fmt.Sprint(i)+".jpg", body, 0644)
 	}
+	fmt.Println("download complete! total:", len(pages))
 }
 
 func downDouding(url string) {
